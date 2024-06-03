@@ -3,8 +3,8 @@
 from os.path import join, isfile
 import tensorflow as tf
 import numpy as np
-from .parse_reg_args import get_parser
-from .build_tf_model import build_graph_from_args_dict
+from parse_reg_args import get_parser
+from build_tf_model import build_graph_from_args_dict
 from tqdm import tqdm
 
 
