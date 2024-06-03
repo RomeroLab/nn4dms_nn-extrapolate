@@ -4,11 +4,10 @@ import collections
 from os.path import join, isfile, dirname
 import argparse
 
-import yaml
 import tensorflow as tf
 
-from my_pipgcn import node_average_gc
-import gen_structure_graph as gsg
+from .my_pipgcn import node_average_gc
+from . import gen_structure_graph as gsg
 
 
 def eval_spec(spec, local_scope):
@@ -25,7 +24,7 @@ def eval_spec(spec, local_scope):
     return spec
 
 
-def bg_inference(net_fn, adj_mtx, ph_inputs_dict):
+def bg_inference(net_fn, adj_mtx, ph_inputs_dict, dropout_rate):
     """ builds the graph as far as needed to return the tensor that would contain the output predictions """
 
     with open(net_fn, "r") as f:
@@ -140,7 +139,7 @@ def bg_summaries(metrics_ph_dict, validation_loss_ph, training_loss_ph):
     return summaries_per_epoch, summaries_metrics
 
 
-def build_inference_graph(args, encoded_data_shape):
+def build_inference_graph(args, encoded_data_shape, dropout_rate):
     """ builds the inference part of the graph. the encoded data shape is expected to have the first dimension
         be the number of examples (batch size). it will be ignored, but still expected, so make it 1 if needed """
 
@@ -160,7 +159,7 @@ def build_inference_graph(args, encoded_data_shape):
     ph_inputs_dict = get_placeholder_inputs(encoded_data_shape)
 
     # build the inference part of the graph that gets the output values from the inputs
-    predictions = bg_inference(args["net_file"], adj_mtx, ph_inputs_dict)
+    predictions = bg_inference(args["net_file"], adj_mtx, ph_inputs_dict, dropout_rate)
 
     # place all relevant tensorflow variables and ops into a dictionary for passing around to other functions
     inf_graph = {"ph_inputs_dict": ph_inputs_dict,
@@ -198,7 +197,7 @@ def build_training_graph(args, inf_graph):
     return train_graph
 
 
-def build_graph_from_args_dict(args, encoded_data_shape, reset_graph=True):
+def build_graph_from_args_dict(args, encoded_data_shape, dropout_rate=0.2, reset_graph=True):
     # if args was processed with argparse, it will be a namespace object, but we are set up to work on a dict
     if isinstance(args, argparse.Namespace):
         args = vars(args)
@@ -206,7 +205,7 @@ def build_graph_from_args_dict(args, encoded_data_shape, reset_graph=True):
     if reset_graph:
         tf.compat.v1.reset_default_graph()
 
-    inf_graph = build_inference_graph(args, encoded_data_shape)
+    inf_graph = build_inference_graph(args, encoded_data_shape, dropout_rate)
     train_graph = build_training_graph(args, inf_graph)
 
     return inf_graph, train_graph

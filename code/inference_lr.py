@@ -114,7 +114,7 @@ def restore_sess_from_pb(pb_fn):
     return sess
 
 
-def run_inference(encoded_data, ckpt_prefix_fn=None, sess=None, output_tensor_name="output/BiasAdd:0",
+def run_inference_lr(encoded_data, ckpt_prefix_fn=None, sess=None, output_tensor_name="output/BiasAdd:0",
                   batch_size=256, enable_dropout=False):
     """ run inference on new data """
 
@@ -132,7 +132,7 @@ def run_inference(encoded_data, ckpt_prefix_fn=None, sess=None, output_tensor_na
     # get operations from the TensorFlow graph that are needed to run new examples through the network
     # placeholder for the input sequences
     input_seqs_ph = sess.graph.get_tensor_by_name("raw_seqs_placeholder:0")
-    training_ph = sess.graph.get_tensor_by_name("training_ph:0")
+    #training_ph = sess.graph.get_tensor_by_name("training_ph:0")
 
     # predictions come from "output/BiasAdd:0" which refers to the final fully connected layer of the network
     # after the bias has been added. all my network_specs will have this same "output" layer. the extra squeeze
@@ -149,14 +149,12 @@ def run_inference(encoded_data, ckpt_prefix_fn=None, sess=None, output_tensor_na
             # if batch_num % 10 == 0:
             #     print("Running batch {} of {}...".format(batch_num+1, num_batches))
             batch_data = batch_data[0]
-            predictions_for_batch = sess.run(predictions, feed_dict={input_seqs_ph: batch_data,
-                                                                     training_ph: enable_dropout})
+            predictions_for_batch = sess.run(predictions, feed_dict={input_seqs_ph: batch_data})
             start_index = batch_num * batch_size
             end_index = start_index + batch_size
             predictions_for_data[start_index:end_index] = np.squeeze(predictions_for_batch)
     else:
-        predictions_for_data = np.squeeze(sess.run(predictions, feed_dict={input_seqs_ph: encoded_data,
-                                                                training_ph: enable_dropout}))
+        predictions_for_data = np.squeeze(sess.run(predictions, feed_dict={input_seqs_ph: encoded_data}))
 
     if created_sess:
         sess.close()
