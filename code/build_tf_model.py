@@ -6,8 +6,8 @@ import argparse
 
 import tensorflow as tf
 
-from .my_pipgcn import node_average_gc
-from . import gen_structure_graph as gsg
+from my_pipgcn import node_average_gc
+import gen_structure_graph as gsg
 
 
 def eval_spec(spec, local_scope):
