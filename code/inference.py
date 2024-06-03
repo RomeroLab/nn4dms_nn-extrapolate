@@ -145,7 +145,7 @@ def run_inference(encoded_data, ckpt_prefix_fn=None, sess=None, output_tensor_na
         # print("Splitting data into batches of size 256 since more than 256 examples were provided.")
         predictions_for_data = np.zeros(encoded_data.shape[0])
         bg = batch_generator([encoded_data], batch_size, skip_last_batch=False, num_epochs=1, shuffle=False)
-        for batch_num, batch_data in tqdm(enumerate(bg), total=num_batches):
+        for batch_num, batch_data in tqdm(enumerate(bg), total=num_batches, ncols=80, desc="Running inference", leave=False):
             # if batch_num % 10 == 0:
             #     print("Running batch {} of {}...".format(batch_num+1, num_batches))
             batch_data = batch_data[0]
