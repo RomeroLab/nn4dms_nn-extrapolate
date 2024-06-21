@@ -71,6 +71,79 @@ def generate_random_mut(WT, AA_options, num_mut):
                 break
     return ','.join(mutations)
 
+class SA_optimizer:
+    def __init__(self, seq2fitness, WT, AA_options, num_mut, mut_rate=1, nsteps=1000, cool_sched='log'):
+        self.seq2fitness = seq2fitness
+        self.WT = WT
+        self.AA_options = AA_options
+        self.num_mut = num_mut
+        self.mut_rate = mut_rate
+        self.nsteps = nsteps
+        self.cool_sched = cool_sched
+        
+    def optimize(self, start_mut=None, seed=0):
+        random.seed(0)
+        
+        if start_mut is None:
+            start_mut = generate_random_mut(self.WT, self.AA_options, self.num_mut).split(',')
+        all_mutants = generate_all_point_mutants(self.WT, self.AA_options)
+
+        assert ((self.cool_sched == 'log') or (self.cool_sched == 'lin')), 'cool_sched must be \'log\' or \'lin\''
+        if self.cool_sched == 'log':
+            temp = np.logspace(3, -5, self.nsteps)
+        if self.cool_sched == 'lin':
+            temp = np.linspace(1000, 1e-9, self.nsteps)
+        
+        print('Simulated Annealing Progress: ')
+        seq = mut2seq(self.WT, start_mut)
+        fit = self.seq2fitness(seq)
+        current_seq = [start_mut, fit]
+        self.best_seq = [start_mut, fit]
+        self.fitness_trajectory = [[fit, fit]] # fitness_trajectory = [best_fit, current_fit]
+        
+        # for loop over decreasing temperatures    
+        for T in temp:
+            mutant = list(current_seq[0])
+
+            # choose the number of mutations to make to current sequence
+            n = np.random.poisson(self.mut_rate)   
+            n = min([self.num_mut-1,max([1,n])]) # bound n within the range [1,num_mut-1]
+
+            # remove random mutations from current sequence until it contains (num_mut-n) mutations
+            while len(mutant) > (self.num_mut-n):
+                mutant.pop(random.choice(range(len(mutant))))
+
+            # add back n random mutations to generate new mutant
+            occupied = [m[1:-1] for m in mutant] # postions that already have a mutation
+            mut_options = [m for m in all_mutants if m[1:-1] not in occupied] # mutations at unoccupied positions
+            while len(mutant) < self.num_mut:
+                mutant.append(random.choice(mut_options))
+                occupied = [m[1:-1] for m in mutant]
+                mut_options = [m for m in all_mutants if m[1:-1] not in occupied]
+
+            # sort mutations by position to clean up
+            mutant = tuple([n[1] for n in sorted([(int(m[1:-1]), m) for m in mutant])])
+
+            # evaluate fitness of new mutant
+            fitness = self.seq2fitness(mut2seq(self.WT, mutant))
+
+            # if mutant is better than best sequence, reassign best sequence
+            if fitness > self.best_seq[1]:
+                self.best_seq = [mutant, fitness]
+                #print('fitness = %0.2f, mutations = %s' % (fitness,''.join([i.ljust(5) for i in mutant])))
+
+            # Simulated annealing acceptance criteria: 
+            #   If mutant is better than current seq, move to mutant seq
+            #   If mutant is worse than current seq, move to mutant with some exponentially decreasing probability with delta_F 
+            delta_F = fitness - current_seq[1] # new seq is worse if delta_F is neg.
+            #print(np.exp(min([0,delta_F/(10*T)])))
+            if np.exp(min([0 , delta_F/(T)])) > random.random():
+                current_seq = [mutant, fitness]
+
+            # store the current fitness
+            self.fitness_trajectory.append([self.best_seq[1], current_seq[1]])
+            
+        return self.best_seq # returns [best_mut, best_fit]
 
 class Hill_climber():
 
