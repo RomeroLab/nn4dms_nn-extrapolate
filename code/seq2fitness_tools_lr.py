@@ -1,15 +1,9 @@
-# Import necessary libraries here
-from os.path import abspath, join
-import sys
+"""Test script to load pre-trained model from /nn-extrapolation-models/pretrained_models"""
 
-#module_path = abspath("nn4dms_nn-extrapolate/code")
-#if module_path not in sys.path:
-#    sys.path.append(module_path)
-
-
-import numpy as np
+from os.path import join
 import encode as encoding
 import inference_lr as inference  # use this inference for LR model only - removed training_ph
+# import inference as inference  # use this inference for an other model
 
 # define relative path to pretrained_model_dir - this is fixed - it is set relative to
 # working directory set in 02_run_sa.py
